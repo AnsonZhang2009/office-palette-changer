@@ -1,0 +1,30 @@
+/* ostyle theme: midnight — dark deck palette.
+   PowerPoint gets the true dark background; Word keeps dark-on-white text
+   via the @word override so body copy stays readable on the page. */
+:root {
+  --text: #E8EAF0;
+  --background: #16181D;
+  --dk2: #A9AFBF;
+  --lt2: #232733;
+  --accent1: #7AA2F7;
+  --accent2: #9D7CD8;
+  --accent3: #73DACA;
+  --accent4: #E0AF68;
+  --accent5: #F7768E;
+  --accent6: #4FD6BE;
+  --hlink: #7AA2F7;
+  --folhlink: #9D7CD8;
+  --heading-font: "Avenir Next";
+  --body-font: "Helvetica Neue";
+}
+@word {
+  :root {
+    --text: #26282F;
+    --background: #FFFFFF;
+  }
+  h1 { size: 20pt; bold: true; color: var(--accent1); space-before: 18pt; }
+  h2 { size: 15pt; bold: true; color: var(--accent2); space-before: 14pt; }
+}
+@ppt {
+  background: var(--lt1);
+}

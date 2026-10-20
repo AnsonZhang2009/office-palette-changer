@@ -1,0 +1,22 @@
+/* ostyle theme: paper — warm paper tones, Georgia headings. */
+:root {
+  --text: #33302B;
+  --background: #FBF9F4;
+  --dk2: #6B655C;
+  --lt2: #EFEAE0;
+  --accent1: #8A5A44;
+  --accent2: #3E5C50;
+  --accent3: #A98A5F;
+  --accent4: #5C708A;
+  --accent5: #8A7A5C;
+  --accent6: #B0563F;
+  --hlink: #3E5C50;
+  --folhlink: #8A5A44;
+  --heading-font: "Georgia";
+  --body-font: "Aptos";
+}
+@word {
+  h1 { size: 22pt; bold: true; color: var(--accent1); space-before: 18pt; space-after: 6pt; }
+  h2 { size: 16pt; bold: true; color: var(--accent2); space-before: 14pt; space-after: 4pt; }
+  h3 { size: 13pt; bold: true; color: var(--dk2); space-before: 12pt; }
+}

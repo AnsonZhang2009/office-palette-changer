@@ -1,0 +1,22 @@
+/* ostyle theme: nord — the Nord color scheme (nordtheme.com). */
+:root {
+  --text: #2E3440;
+  --background: #ECEFF4;
+  --dk2: #4C566A;
+  --lt2: #E5E9F0;
+  --accent1: #81A1C1;
+  --accent2: #8FBCBB;
+  --accent3: #A3BE8C;
+  --accent4: #EBCB8B;
+  --accent5: #B48EAD;
+  --accent6: #88C0D0;
+  --hlink: #88C0D0;
+  --folhlink: #8FBCBB;
+  --heading-font: "Avenir Next";
+  --body-font: "Helvetica Neue";
+}
+@word {
+  h1 { size: 20pt; bold: true; color: var(--accent1); space-before: 18pt; space-after: 6pt; }
+  h2 { size: 15pt; bold: true; color: var(--dk2); space-before: 14pt; }
+  h3 { size: 12.5pt; bold: true; color: var(--accent6); space-before: 12pt; }
+}

@@ -1,0 +1,22 @@
+/* ostyle theme: warm — terracotta and olive on cream. */
+:root {
+  --text: #3B2E2A;
+  --background: #FDF8F2;
+  --dk2: #7A6A5F;
+  --lt2: #F3E9DC;
+  --accent1: #C05B3C;
+  --accent2: #7C8A5A;
+  --accent3: #D9A05B;
+  --accent4: #A5643B;
+  --accent5: #5E7360;
+  --accent6: #E2B75B;
+  --hlink: #7C8A5A;
+  --folhlink: #C05B3C;
+  --heading-font: "Avenir Next";
+  --body-font: "Aptos";
+}
+@word {
+  h1 { size: 21pt; bold: true; color: var(--accent1); space-before: 16pt; space-after: 6pt; }
+  h2 { size: 15pt; bold: true; color: var(--accent2); space-before: 13pt; }
+  h3 { size: 12.5pt; bold: true; italic: true; color: var(--dk2); space-before: 11pt; }
+}
