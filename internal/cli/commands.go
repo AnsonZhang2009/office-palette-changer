@@ -12,13 +12,26 @@ import (
 	"office-palette-changer/themes"
 )
 
+// slotLabels are the human names for the 12 OOXML palette slots.
+var slotLabels = map[string]string{
+	"dk1": "text", "lt1": "background", "dk2": "text alt", "lt2": "background alt",
+	"accent1": "accent 1", "accent2": "accent 2", "accent3": "accent 3",
+	"accent4": "accent 4", "accent5": "accent 5", "accent6": "accent 6",
+	"hlink": "hyperlink", "folHlink": "visited link",
+}
+
 func cmdList(args []string) int {
 	list := ListThemes()
 	if len(list) == 0 {
-		fmt.Println("no themes found — create one with: ostyle new <name>")
+		fmt.Println("no themes found — create one with: ostyle palette <name> <colors...>")
 		return 0
 	}
-	fmt.Printf("Themes (user dir: %s):\n", UserThemeDir())
+	dir := UserThemeDir()
+	if _, err := os.Stat(dir); err != nil {
+		fmt.Printf("Themes (user dir %s not created yet — `ostyle palette` or `ostyle new` creates it):\n", dir)
+	} else {
+		fmt.Printf("Themes (user dir: %s):\n", dir)
+	}
 	for _, ti := range list {
 		src, err := themes.FS.ReadFile(ti.Name + ".css")
 		if err != nil {
@@ -64,21 +77,15 @@ func cmdShow(args []string) int {
 	word := t.ForWord()
 	ppt := t.ForPPT()
 
-	labelFor := map[string]string{
-		"dk1": "text", "lt1": "background", "dk2": "text alt", "lt2": "background alt",
-		"accent1": "accent 1", "accent2": "accent 2", "accent3": "accent 3",
-		"accent4": "accent 4", "accent5": "accent 5", "accent6": "accent 6",
-		"hlink": "hyperlink", "folHlink": "visited link",
-	}
 	fmt.Println("Palette (Word):")
 	for _, k := range theme.ColorKeys {
-		fmt.Println("  " + swatch(word.Colors[k], labelFor[k]))
+		fmt.Println("  " + swatch(word.Colors[k], slotLabels[k]))
 	}
 	if fmt.Sprint(palMap(ppt)) != fmt.Sprint(palMap(word)) {
 		fmt.Println("Palette (PowerPoint overrides):")
 		for _, k := range theme.ColorKeys {
 			if ppt.Colors[k] != word.Colors[k] {
-				fmt.Println("  " + swatch(ppt.Colors[k], labelFor[k]))
+				fmt.Println("  " + swatch(ppt.Colors[k], slotLabels[k]))
 			}
 		}
 	}
@@ -150,9 +157,10 @@ const scaffoldCSS = `/* ostyle theme: %s */
 `
 
 func cmdNew(args []string) int {
-	fs := newFlagSet("new", "ostyle new <name> [--from <file.docx|file.pptx>] [--here] [--force]")
+	fs := newFlagSet("new", "ostyle new <name> [--from <file.docx|file.pptx>] [--copy <theme>] [--here] [--force]")
 	here := fs.Bool("here", false, "write the theme into the current directory")
 	from := fs.String("from", "", "extract the palette from an existing .docx/.pptx")
+	copyFrom := fs.String("copy", "", "start from a copy of an existing theme (built-in or yours)")
 	force := fs.Bool("force", false, "overwrite an existing theme file")
 	if err := parseMixed(fs, args); err != nil {
 		return 2
@@ -162,40 +170,68 @@ func cmdNew(args []string) int {
 		return 2
 	}
 	name := fs.Arg(0)
-	if name == "" || strings.ContainsAny(name, "/\\") || strings.Contains(name, ".") {
-		return fail("theme name must be a plain name like \"nord\"")
+	if err := validThemeName(name); err != nil {
+		return fail("%v", err)
+	}
+	if *from != "" && *copyFrom != "" {
+		return fail("use either --from or --copy, not both")
 	}
 
 	var content string
-	if *from != "" {
+	switch {
+	case *from != "":
 		t, err := ooxml.ExtractTheme(*from)
 		if err != nil {
 			return fail("%v", err)
 		}
-		if t.Name == "" {
-			t.Name = name
-		}
+		t.Name = name
+		t.Source = "ostyle new " + name + " --from " + quoteArg(*from)
 		content = t.ToCSS()
-	} else {
+	case *copyFrom != "":
+		src, origin, err := themeSource(*copyFrom)
+		if err != nil {
+			return fail("%v", err)
+		}
+		content = retitleTheme(src, name, origin)
+	default:
 		content = fmt.Sprintf(scaffoldCSS, name)
 	}
 
-	path := filepath.Join(UserThemeDir(), name+".css")
-	if *here {
-		path = name + ".css"
-	}
-	if _, err := os.Stat(path); err == nil && !*force {
-		return fail("%s already exists (use --force to overwrite)", path)
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fail("creating theme dir: %v", err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		return fail("writing theme: %v", err)
+	path := themeTargetPath(name, *here)
+	if err := writeThemeFile(path, content, *force); err != nil {
+		return fail("%v", err)
 	}
 	fmt.Printf("created %s\n", path)
 	fmt.Println("edit it, preview with `ostyle show`, apply with `ostyle apply`.")
 	return 0
+}
+
+// themeSource returns the raw CSS of a theme reference (path, user, built-in).
+func themeSource(ref string) (css string, origin string, err error) {
+	if strings.ContainsRune(ref, '/') || strings.HasSuffix(ref, ".css") {
+		if b, err := os.ReadFile(ref); err == nil {
+			return string(b), ref, nil
+		}
+	}
+	userPath := filepath.Join(UserThemeDir(), ref+".css")
+	if b, err := os.ReadFile(userPath); err == nil {
+		return string(b), userPath, nil
+	}
+	if b, err := themes.FS.ReadFile(ref + ".css"); err == nil {
+		return string(b), "built-in " + ref, nil
+	}
+	return "", "", fmt.Errorf("theme %q not found (looked in %s and the built-ins)", ref, UserThemeDir())
+}
+
+// retitleTheme swaps the header comment of copied CSS for one naming the new
+// theme and where it came from.
+func retitleTheme(src, name, origin string) string {
+	lines := strings.SplitN(src, "\n", 2)
+	body := src
+	if strings.HasPrefix(strings.TrimSpace(lines[0]), "/* ostyle theme:") && len(lines) == 2 {
+		body = lines[1]
+	}
+	return fmt.Sprintf("/* ostyle theme: %s (copied from %s) */\n%s", name, origin, body)
 }
 
 func cmdExport(args []string) int {

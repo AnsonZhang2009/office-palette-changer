@@ -23,15 +23,18 @@ Usage:
   ostyle apply <theme> --active --app word|powerpoint
                                        style the document that is open right now
                                        (saves it, patches the file, reopens it)
-  ostyle new <name> [--from <file>]    scaffold a theme (optionally extracting
-                                       the palette from an existing document)
+  ostyle palette <name> <color...>     generate a full theme from a few colors
+  ostyle palette -i                    …or let a wizard walk you through it
+  ostyle new <name> [--from <file>] [--copy <theme>]
+                                       scaffold a theme, extract one from a
+                                       document, or copy an existing theme
   ostyle export <theme> [out.thmx]     export as a real .thmx for Office's
                                        theme gallery / Windows colleagues
   ostyle validate <theme.css>          lint a theme file
 
 Themes live as .css files in ~/.config/ostyle/themes/ (or $OSTYLE_THEME_DIR),
 plus the built-ins compiled into the binary. A theme ref is either a name
-("nord"), a path to a .css file, or a path with a trailing / to search a dir.
+("nord") or a path to a .css file.
 
 Flags for apply:
   --app word|powerpoint   which app to drive (required with --active)
@@ -39,6 +42,11 @@ Flags for apply:
   --no-backup             skip writing <file>.bak before patching
   --no-reopen             with --active: leave the document closed afterwards
   --force                 patch even if the file appears to be open
+
+Flags for palette:
+  --text/--background hex force a role; --accent hex (repeatable) explicit accents
+  --dark                  dark palette (PowerPoint canvas dark, Word stays readable)
+  --heading-font/--body-font, --no-headings, --print, --here, --force
 
 Homepage: https://github.com/ansonzhang/office-palette-changer
 `
@@ -55,6 +63,8 @@ func Main(args []string) int {
 		return cmdShow(args[1:])
 	case "apply":
 		return cmdApply(args[1:])
+	case "palette":
+		return cmdPalette(args[1:])
 	case "new":
 		return cmdNew(args[1:])
 	case "export":
